@@ -91,8 +91,7 @@ def main():
 
 
 
-    rec = rec[0]
-    rec = rec[:,:,0]
+    rec = rec[0,:,:,0]
 
     out = numpy.clip(rec, 0., 1.)
     dif = ((out - im)+1.0)/2.0
