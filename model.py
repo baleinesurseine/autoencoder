@@ -2,7 +2,7 @@
 __all__ = [
     'get_encoder_layers',
     'get_decoder_layers',
-    'get_losses'
+    'get_BN_model'
     ]
 
 import tensorflow as tf
@@ -70,29 +70,39 @@ def get_BN_model():
     iter = tf.placeholder(tf.int32)
 
     # weights
+    B_dconv_0 = bias_variable([1], name="Bd0")
+    
     W_conv_1 = weight_variable([3, 3, 1, 16], name="Wc1")
     B_conv_1 = bias_variable([16], name="Bc1")
+    B_dconv_1 = bias_variable([16], name="Bd1")
 
     W_conv_2 = weight_variable([3, 3, 16, 32], name="Wc2") / math.sqrt(16)
     B_conv_2 = bias_variable([32], name="Bc2")
+    B_dconv_2 = bias_variable([32], name="Bd2")
 
     W_conv_3 = weight_variable([3, 3, 32, 64], name="Wc3") / math.sqrt(32)
     B_conv_3 = bias_variable([64], name="Bc3")
+    B_dconv_3 = bias_variable([64], name="Bd3")
 
     W_conv_4 = weight_variable([3, 3, 64, 128], name="Wc4") / math.sqrt(64)
     B_conv_4 = bias_variable([128], name="Bc4")
+    B_dconv_4 = bias_variable([128], name="Bd4")
 
     W_conv_5 = weight_variable([3, 3, 128, 256], name="Wc5") / math.sqrt(128)
     B_conv_5 = bias_variable([256], name="Bc5")
+    B_dconv_5 = bias_variable([256], name="Bd5")
 
     W_conv_6 = weight_variable([3, 3, 256, 512], name="Wc6") / math.sqrt(256)
     B_conv_6 = bias_variable([512], name="Bc6")
+    B_dconv_6 = bias_variable([512], name="Bd6")
 
     W_conv_7 = weight_variable([3, 3, 512, 1024], name="Wc7") / math.sqrt(512)
     B_conv_7 = bias_variable([1024], name="Bc7")
+    B_dconv_7 = bias_variable([1024], name="Bd7")
 
     W_conv_8 = weight_variable([3, 3, 1024, 512], name="Wc8") / math.sqrt(1024)
     B_conv_8 = bias_variable([512], name="Bc8")
+    B_dconv_8 = bias_variable([512], name="Bd8")
 
     W_conv_9 = weight_variable([1, 1, 512, 15], name="Wc9") / math.sqrt(512)
     B_conv_9 = bias_variable([15], name="Bc9")
