@@ -17,15 +17,10 @@ def lrelu(x, leak=0.2, name="lrelu"):
          return tf.identity(x, name=name)
 
 def weight_variable(shape, name=None):
-  #initial = tf.truncated_normal(shape, stddev=0.1)
-  n_input = shape[2]
-  n_output = shape[3]
-  #initial = tf.truncated_normal(shape, stddev = 0.1)
   initial = tf.random_uniform(shape, -1.0, 1.0  )
   return tf.Variable(initial, name=name)
 
 def bias_variable(shape, name=None):
-  #initial = tf.constant(0.1, shape=shape)
   initial = tf.zeros(shape=shape)
   return tf.Variable(initial, name=name)
 
