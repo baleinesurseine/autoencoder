@@ -116,16 +116,12 @@ def train(learn_rate, report_steps, batch_size, shape, options):
         loss = graph.get_tensor_by_name('loss:0')
         train_step = graph.get_operation_by_name('train_step')
         L3 = graph.get_tensor_by_name('L3:0')
-        
-    v15 = tf.contrib.distributions.percentile(L3, 15)
-    v50 = tf.contrib.distributions.percentile(L3, 50)
-    v85 = tf.contrib.distributions.percentile(L3, 85)
-    
+          
 
     def do_batch():
-        _, ls, p15, p50, p85 = sess.run([train_step, loss, v15, v50, v85],
+        _, ls, l3 = sess.run([train_step, loss, L3],
                  feed_dict={x: batch_xs, y_: batch_xs})
-        return ls, p15, p50, p85
+        return ls, l3
 
     def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
@@ -142,7 +138,11 @@ def train(learn_rate, report_steps, batch_size, shape, options):
     batch_iter = enumerate(read_batches(shape, options, batch_size))
     #for batch_idx, (batch_xs, batch_ys) in batch_iter:
     for batch_idx, batch_xs in batch_iter:
-        ls, p15, p50, p85 = do_batch()
+        ls, l3 = do_batch()
+        p15 = numpy.percentile(l3, 15)
+        p50 = numpy.percentile(l3, 50)
+        p85 = numpy.percentile(l3, 85)
+        
         print(batch_idx, numpy.sqrt(ls), '[', p15, ',', p50, ',', p85, ']')
 
 
