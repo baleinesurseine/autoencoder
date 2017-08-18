@@ -1,4 +1,23 @@
 #!/usr/bin/env python
+# Copyright (c) 2017 Edouard FISCHER
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+#     The above copyright notice and this permission notice shall be included
+#     in all copies or substantial portions of the Software.
+#
+#     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+#     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+#     NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+#     DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+#     OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+#     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from argparse import ArgumentParser
 from functools import wraps
@@ -30,8 +49,7 @@ def mpgen(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
         q = multiprocessing.Queue(3)
-        proc = multiprocessing.Process(target=mainmp,
-                                       args=(q, args, kwargs))
+        proc = multiprocessing.Process(target=mainmp, args=(q, args, kwargs))
         proc.start()
         try:
             while True:
@@ -40,7 +58,6 @@ def mpgen(f):
         finally:
             proc.terminate()
             proc.join()
-
     return wrapped
 
 @mpgen
@@ -53,8 +70,6 @@ def read_batches(shape, options, batch_size):
     while True:
         #yield a batch of images of size batch_size
         yield list(itertools.islice(g, batch_size))
-
-
 
 # default arguments
 TEST = './test'
@@ -83,11 +98,7 @@ def build_parser():
     parser.add_argument('--version', '-V', action='version', version='%(prog)s 0.0')
     return parser
 
-
 def train(learn_rate, batch_size, shape, options):
-    """
-
-    """
     # set Session
     config = tf.ConfigProto()
     config.allow_soft_placement = True
@@ -133,7 +144,6 @@ def train(learn_rate, batch_size, shape, options):
     # for handling CTRL-C : save model before exit
     def signal_handler(sig, frame):
         print('\n\033[1m\033[34m===== train.py[{}] interrupted =====\033[0m'.format(os.getpid()))
-        sh.value = sh.value + 1
         # create directory if doesn't exist
         try:
             os.makedirs(options.save)
@@ -164,8 +174,6 @@ def main():
     parser = build_parser()
     options = parser.parse_args()
 
-
-
     if options.weights == None:
         print('Training will start from new weights.')
 
@@ -173,9 +181,6 @@ def main():
     train(learn_rate=0.002,
           batch_size=50,
           shape=shape, options=options)
-
-# sh is a variable shared between multiple processes
-sh = multiprocessing.Value('i', 0)
 
 if __name__ == '__main__':
     main()

@@ -1,7 +1,27 @@
+#!/usr/bin/env python
+# Copyright (c) 2017 Edouard FISCHER
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+#     The above copyright notice and this permission notice shall be included
+#     in all copies or substantial portions of the Software.
+#
+#     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+#     OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#     MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+#     NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+#     DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+#     OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+#     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from argparse import ArgumentParser
 import cv2
-import numpy
+import numpy as np
 
 import os
 # remove informative logging from tensorflow
@@ -32,21 +52,20 @@ def plotCode(code):
     code if size [W, H, 15]
     """
     # rescale features
-    mincode = numpy.amin(code)
-    maxcode = numpy.amax(code)
+    mincode = np.amin(code)
+    maxcode = np.amax(code)
     print('Min: ', mincode, 'Max: ', maxcode)
     code = (code - mincode) / (maxcode - mincode)
     # create output image
-    sh = numpy.shape(code)
+    sh = np.shape(code)
     W = sh[0]
     H = sh[1]
-    out = numpy.zeros((3*W+2*2, 5*H+4*2))
+    out = np.zeros((3*W+2*2, 5*H+4*2))
     # copy each feature in out
     for w in range(0,3):
         for h in range(0,5):
             c = w*5 + h
             out[w*(W+2):(w+1)*(W+2)-2, h*(H+2):(h+1)*(H+2)-2] = code[:,:,c]
-
     return out
 
 def main():
@@ -76,8 +95,8 @@ def main():
     H = image.shape[0]
     W = image.shape[1]
     # resize and crop image to have multiples of 32 in both dimension
-    H1 = int(numpy.ceil(H/32))*32
-    W1 = int(numpy.ceil(W/32))*32
+    H1 = int(np.ceil(H/32))*32
+    W1 = int(np.ceil(W/32))*32
     ratio = max(H1/H, W1/W)
     im = cv2.resize(image, (int(W * ratio) + 1, int(H * ratio) + 1))
     im = im[0:H1, 0:W1]
@@ -87,11 +106,11 @@ def main():
     code, rec, ls, sp = sess.run([y, x_, loss, sparse],
         feed_dict={x: batch_xs, y_: batch_xs})
     # print error and sparsity of the encoding
-    print(numpy.sqrt(ls), sp)
+    print(np.sqrt(ls), sp)
     # get reconstructed image
     rec = rec[0,:,:,0]
     # clip to [0..1] (relu activation doesn't ensure output is <1)
-    out = numpy.clip(rec, 0., 1.)
+    out = np.clip(rec, 0., 1.)
     dif = ((out - im)+1.0)/2.0
     mapcode = plotCode(code[0, :, :, :])
     # save images : reconstructed, error and code

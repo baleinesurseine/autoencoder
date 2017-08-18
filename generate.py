@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# Parts of this software are derived from Matthew Earl's deep-anpr
-# Copyright (c) 2016 Matthew Earl
+# Copyright (c) 2017 Edouard FISCHER
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -20,25 +19,19 @@
 #     OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 #     USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+__all__ = [
+    'generate_ims'
+    ]
+
 import itertools
-import math
 import os, errno
 import random
-import sys
 import glob
 
 import cv2
-import numpy
-
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+import numpy as np
 
 from argparse import ArgumentParser
-
-__all__ = (
-    'generate_ims'
-)
 
 # default arguments
 ITERATIONS = 1000
@@ -67,25 +60,15 @@ def build_parser():
     parser.add_argument('--version', '-V', action='version', version='%(prog)s 0.0')
     return parser
 
-
-
-OUTPUT_SHAPE = (64, 128)
-
-
-
 def generate_bg(re_files, shape):
     found = False
-    #in_files = os.path.join(bg_folder, '*.jpg')
-    #re_files = glob.glob(in_files)
     nb_files = len(re_files)
 
     while not found:
-        #fname = "{}/{:08d}.jpg".format(bg_folder, random.randint(0, num_bg_images - 1))
         fname = re_files[random.randint(0, nb_files - 1)]
         #bg = cv2.imread(fname, cv2.CV_LOAD_IMAGE_GRAYSCALE) / 255.
         bg = cv2.imread(fname, 0) / 255.
         ratio = max(shape[1] / bg.shape[1], shape[0] / bg.shape[0])
-
         bg = cv2.resize(bg, (int(bg.shape[1] * ratio) + 1, int(bg.shape[0] * ratio) + 1))
 
         if (bg.shape[1] >= shape[1] and
@@ -95,26 +78,22 @@ def generate_bg(re_files, shape):
     x = random.randint(0, bg.shape[1] - shape[1])
     y = random.randint(0, bg.shape[0] - shape[0])
     bg = bg[y:y + shape[0], x:x + shape[1]]
-
     return bg
-
 
 def generate_im(re_files, shape):
     bg = generate_bg(re_files, shape)
     out = bg
     out = cv2.resize(out, (shape[1], shape[0]))
-    #out += numpy.random.normal(scale=0.05, size=out.shape)
-    out = numpy.clip(out, 0., 1.)
-
+    #out += np.random.normal(scale=0.05, size=out.shape)
+    out = np.clip(out, 0., 1.)
     return out
 
 def generate_ims(shape, bg_dir):
     """
-    Generate number plate images.
+    Generate images.
 
     :return:
-        Iterable of number plate images.
-
+        Iterable of images.
     """
     in_files = os.path.join(bg_dir, '*.jpg')
     re_files = glob.glob(in_files)
