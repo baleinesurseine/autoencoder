@@ -147,8 +147,8 @@ def get_decoder_layers(y, filters):
     D3 = deconvolutional(D4, W_dconv_4, B_dconv_3, [batch, 4*W, 4*H, 64], stride=(2, 2), op=activation, name = 'D3')
     D2 = deconvolutional(D3, W_dconv_3, B_dconv_2, [batch, 8*W, 8*H, 32], stride=(2, 2), op=activation, name = 'D2')
     D1 = deconvolutional(D2, W_dconv_2, B_dconv_1, [batch, 16*W, 16*H, 16], stride=(2, 2), op=activation, name = 'D1')
-    D0 = deconvolutional(D1, W_dconv_1, B_dconv_0, [batch, 32*W, 32*H, 1], stride=(2, 2), op=activation, name = 'D0')
-    x_ = tf.identity(D0, name = 'reconstruct')
+    x_ = deconvolutional(D1, W_dconv_1, B_dconv_0, [batch, 32*W, 32*H, 1], stride=(2, 2), op=activation, name = 'reconstruct')
+
     return x_, [W_dconv_1, W_dconv_2, W_dconv_3, W_dconv_4, W_dconv_5,
                             W_dconv_6, W_dconv_7, W_dconv_8, W_dconv_9,
                             B_dconv_0, B_dconv_1, B_dconv_2, B_dconv_3, B_dconv_4,

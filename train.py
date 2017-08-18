@@ -140,7 +140,6 @@ def train(learn_rate, report_steps, batch_size, shape, options):
     signal.signal(signal.SIGINT, signal_handler)
 
     batch_iter = enumerate(read_batches(shape, options, batch_size))
-    #for batch_idx, (batch_xs, batch_ys) in batch_iter:
     for batch_idx, batch_xs in batch_iter:
         ls, l3, d7 = do_batch()
         l15 = numpy.percentile(l3, 15)
@@ -150,7 +149,6 @@ def train(learn_rate, report_steps, batch_size, shape, options):
         d50 = numpy.percentile(d7, 50)
         d85 = numpy.percentile(d7, 85)
 
-        #print(batch_idx, numpy.sqrt(ls), '[', p15, ',', p50, ',', p85, ']')
         print("{:8d} : {:10.5f} L3[{:10.5f}, {:10.5f}, {:10.5f}] D7[{:10.5f}, {:10.5f}, {:10.5f}]"
                         .format(batch_idx, numpy.sqrt(ls), l15, l50, l85, d15, d50, d85))
 
