@@ -21,23 +21,22 @@
 
 __all__ = [
     'get_encoder_layers',
-    'get_decoder_layers',
-    'get_BN_model'
+    'get_decoder_layers'
     ]
 
 import os
+import numpy as np
+import math
 # remove informative logging from tensorflow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import tensorflow as tf
-import numpy as np
-import math
 
 # leaky relu
 def lrelu(x, leak=0.2, name="lrelu"):
-         negative_part = tf.nn.relu(-x)
-         x = tf.nn.relu(x)
-         x -= tf.constant(leak, dtype=tf.float32) * negative_part
-         return tf.identity(x, name=name)
+     negative_part = tf.nn.relu(-x)
+     x = tf.nn.relu(x)
+     x -= tf.constant(leak, dtype=tf.float32) * negative_part
+     return tf.identity(x, name=name)
 
 def weight_var(shape, name=None):
   initial = tf.random_uniform(shape, -1.0, 1.0  )

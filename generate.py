@@ -27,10 +27,8 @@ import itertools
 import os, errno
 import random
 import glob
-
 import cv2
 import numpy as np
-
 from argparse import ArgumentParser
 
 # default arguments
@@ -66,8 +64,7 @@ def generate_bg(re_files, shape):
 
     while not found:
         fname = re_files[random.randint(0, nb_files - 1)]
-        #bg = cv2.imread(fname, cv2.CV_LOAD_IMAGE_GRAYSCALE) / 255.
-        bg = cv2.imread(fname, 0) / 255.
+        bg = cv2.imread(fname, 0) / 255. # cv2.CV_LOAD_IMAGE_GRAYSCALE is 0
         ratio = max(shape[1] / bg.shape[1], shape[0] / bg.shape[0])
         bg = cv2.resize(bg, (int(bg.shape[1] * ratio) + 1, int(bg.shape[0] * ratio) + 1))
 
@@ -84,15 +81,12 @@ def generate_im(re_files, shape):
     bg = generate_bg(re_files, shape)
     out = bg
     out = cv2.resize(out, (shape[1], shape[0]))
-    #out += np.random.normal(scale=0.05, size=out.shape)
     out = np.clip(out, 0., 1.)
-
     return out
 
 def generate_ims(shape, bg_dir):
     """
     Generate images.
-
     :return:
         Iterable of images.
     """
@@ -105,7 +99,6 @@ def generate_ims(shape, bg_dir):
 def main():
     parser = build_parser()
     options = parser.parse_args()
-
     shape = (options.height, options.width)
 
     # check or create output directory

@@ -22,12 +22,10 @@
 from argparse import ArgumentParser
 import cv2
 import numpy as np
-
 import os
 # remove informative logging from tensorflow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import cv2
 import tensorflow as tf
 import model
 
@@ -61,16 +59,17 @@ def plotCode(code):
     sh = np.shape(code)
     W = sh[0]
     H = sh[1]
-    out = np.zeros((3*W+2*2, 5*H+4*2))
+    out = np.zeros((3*(W+2)-2, 5*(H+2)-2))
     # copy each feature in out
     for w in range(0,3):
         for h in range(0,5):
             c = w*5 + h
-            out[w*(W+2):(w+1)*(W+2)-2, h*(H+2):(h+1)*(H+2)-2] = code[:,:,c]
+            out[w*(W+2):w*(W+2)+W, h*(H+2):h*(H+2)+H] = code[:,:,c]
     return out
 
 def plotWeights(w):
     w = w[:,:,0,:]
+    # rescale w to 0.0 - 1.0
     mincode = np.amin(w)
     maxcode = np.amax(w)
     w = (w - mincode) / (maxcode - mincode)
@@ -84,17 +83,16 @@ def plotWeights(w):
 def main():
     parser = build_parser()
     options = parser.parse_args()
-
     # set Session
     config = tf.ConfigProto()
     config.allow_soft_placement = True
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
     # get model
-    print('Restoring model ...')
+    print('Restoring model ...', end='')
     saver = tf.train.import_meta_graph('./' + options.weights + '/' + options.weights + '.meta')
     print('Done.')
-    print('Restoring checkpoint ...')
+    print('Restoring checkpoint ...', end='')
     saver.restore(sess, tf.train.latest_checkpoint('./' + options.weights))
     print('Done.')
     graph = tf.get_default_graph()
@@ -131,12 +129,12 @@ def main():
     rec = rec[0,:,:,0]
     # clip to [0..1] (relu activation doesn't ensure output is <1)
     out = np.clip(rec, 0., 1.)
-    dif = ((out - im)+1.0)/2.0
+    dif = ((out - im)+1.)/2.
     mapcode = plotCode(code[0, :, :, :])
     # save images : reconstructed, error and code
-    cv2.imwrite(options.output, out * 255.)
-    cv2.imwrite('dif-'+options.output, dif * 255.)
-    cv2.imwrite('code-'+options.output, mapcode * 255.)
+    cv2.imwrite('rec-'+options.output,     out * 255.)
+    cv2.imwrite('dif-'+options.output,     dif * 255.)
+    cv2.imwrite('cod-'+options.output, mapcode * 255.)
 
 if __name__ == '__main__':
     main()
