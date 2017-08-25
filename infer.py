@@ -43,6 +43,7 @@ def build_parser():
     parser.add_argument('--output', '-o',
             dest='output', help="output image path",
             metavar='OUTPUT', required = True)
+    parser.add_argument('--filter', '-f', action='store_true')
     parser.add_argument('--version', '-V', action='version', version='%(prog)s 0.0')
     return parser
 
@@ -68,9 +69,22 @@ def plotCode(code):
             out[w*(W+2):(w+1)*(W+2)-2, h*(H+2):(h+1)*(H+2)-2] = code[:,:,c]
     return out
 
+def plotWeights(w):
+    w = w[:,:,0,:]
+    mincode = np.amin(w)
+    maxcode = np.amax(w)
+    w = (w - mincode) / (maxcode - mincode)
+    out = np.zeros((15, 15))
+    for x in range(0,4):
+        for y in range(0,4):
+            c = x*4+y
+            out[x*4:x*4+3, y*4:y*4+3] = w[:,:,c]
+    return out
+
 def main():
     parser = build_parser()
     options = parser.parse_args()
+
     # set Session
     config = tf.ConfigProto()
     config.allow_soft_placement = True
@@ -84,6 +98,12 @@ def main():
     saver.restore(sess, tf.train.latest_checkpoint('./' + options.weights))
     print('Done.')
     graph = tf.get_default_graph()
+    if options.filter:
+        Wc1 = graph.get_tensor_by_name('Wc1:0')
+        w = sess.run(Wc1)
+        out = plotWeights(w)
+        cv2.imwrite(options.output, out * 255.)
+        exit(0)
     x = graph.get_tensor_by_name('Input:0')
     y = graph.get_tensor_by_name('Code:0')
     x_ = graph.get_tensor_by_name('reconstruct:0')

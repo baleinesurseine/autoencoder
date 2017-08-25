@@ -21,17 +21,15 @@
 
 from argparse import ArgumentParser
 from functools import wraps
-import glob
 import itertools
 import multiprocessing
 import signal
-
 import os, errno
+import numpy as np
+
 # remove informative logging from tensorflow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-import cv2
-import numpy as np
 import tensorflow as tf
 
 import generate
@@ -45,7 +43,6 @@ def mpgen(f):
                 q.put(item)
         finally:
             q.close()
-
     @wraps(f)
     def wrapped(*args, **kwargs):
         q = multiprocessing.Queue(3)
@@ -72,28 +69,24 @@ def read_batches(shape, options, batch_size):
         yield list(itertools.islice(g, batch_size))
 
 # default arguments
-TEST = './test'
 SAVE = 'my_model'
 # for command line interpreter
 def build_parser():
     parser = ArgumentParser()
-    parser.add_argument('--test', '-t',
-            dest='test', help="test path (default '%(default)s')",
-            metavar='TEST', default=TEST)
     parser.add_argument('--weights', '-w',
             dest='weights', help="load pre-trained weights",
             metavar='WEIGHTS')
     parser.add_argument('--save', '-s',
             dest='save', help="weight backup path (default '%(default)s')",
             metavar='SAVE', default=SAVE)
-    parser.add_argument('--background', '-b',
-            dest='bg', help='background images folder',
+    parser.add_argument('--images', '-i',
+            dest='bg', help='train images folder',
             metavar='BG', required=True)
     parser.add_argument('--width', '-l', type=int,
-            dest='width', help="width of images",
+            dest='width', help="width of train images",
             metavar='WIDTH', required=True)
     parser.add_argument('--height', '-u', type=int,
-            dest='height', help="height of images",
+            dest='height', help="height of train images",
             metavar='HEIGHT', required=True)
     parser.add_argument('--version', '-V', action='version', version='%(prog)s 0.0')
     return parser
@@ -110,8 +103,6 @@ def train(learn_rate, batch_size, shape, options):
         x, y, params_enc = model.get_encoder_layers()
         x_, params_dec = model.get_decoder_layers(y, params_enc)
         graph = tf.get_default_graph()
-        L3 = graph.get_tensor_by_name('L3:0')
-        D7 = graph.get_tensor_by_name('D7:0')
         adam = tf.train.AdamOptimizer(learn_rate,name="adam")
         y_ = tf.placeholder(tf.float32, [None, None, None], name='y_')
         loss = tf.reduce_mean(tf.square(x_[:,:,:,0] - y_), name="loss")
@@ -120,10 +111,10 @@ def train(learn_rate, batch_size, shape, options):
         sess.run(init)
     else:
         # restore model from files
-        print('Restoring model graph ...')
+        print('Restoring model graph ...', end='')
         saver = tf.train.import_meta_graph('./' + options.weights + '/' + options.weights + '.meta')
         print('Done.')
-        print('Restoring values from checkpoint ...')
+        print('Restoring values from checkpoint ...', end='')
         saver.restore(sess, tf.train.latest_checkpoint('./' + options.weights))
         print('Done.')
         graph = tf.get_default_graph()
@@ -133,44 +124,33 @@ def train(learn_rate, batch_size, shape, options):
         y_ = graph.get_tensor_by_name('y_:0')
         loss = graph.get_tensor_by_name('loss:0')
         train_step = graph.get_operation_by_name('train_step')
-        L3 = graph.get_tensor_by_name('L3:0')
-        D7 = graph.get_tensor_by_name('D7:0')
 
-    def do_batch():
-        _, ls, l3, d7 = sess.run([train_step, loss, L3, D7],
-                 feed_dict={x: batch_xs, y_: batch_xs})
-        return  ls, l3, d7
+    # save model before exit
+    make_sigint_handler(sess, options.save)
 
-    # for handling CTRL-C : save model before exit
+    # iterate train steps on batches
+    batch_iter = enumerate(read_batches(shape, options, batch_size))
+    for batch_idx, batch_xs in batch_iter:
+        _, ls = sess.run([train_step, loss], feed_dict={x: batch_xs, y_: batch_xs})
+        print("{:8d}:{:10.5f}".format(batch_idx, np.sqrt(ls)))
+
+def make_sigint_handler(sess,filename):
     def signal_handler(sig, frame):
-        print('\n\033[1m\033[34m===== train.py[{}] interrupted =====\033[0m'.format(os.getpid()))
+        print('\n\033[1m\033[34m===== train.py[pid:{}] interrupted =====\033[0m'.format(os.getpid()))
         # create directory if doesn't exist
         try:
-            os.makedirs(options.save)
+            os.makedirs(filename)
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
         saver = tf.train.Saver()
-        print('Saving weights on', saver.save(sess, './' + options.save + '/' + options.save), ': done.')
+        print('Saving weights on', saver.save(sess, './' + filename + '/' + filename), ': done.')
         exit(0)
-
     # connect handler callback to SIGINT signal
     signal.signal(signal.SIGINT, signal_handler)
 
-    batch_iter = enumerate(read_batches(shape, options, batch_size))
-    for batch_idx, batch_xs in batch_iter:
-        ls, l3, d7 = do_batch()
-        l15 = np.percentile(l3, 15)
-        l50 = np.percentile(l3, 50)
-        l85 = np.percentile(l3, 85)
-        d15 = np.percentile(d7, 15)
-        d50 = np.percentile(d7, 50)
-        d85 = np.percentile(d7, 85)
-        print("{:8d} : {:10.5f} L3[{:10.5f}, {:10.5f}, {:10.5f}] D7[{:10.5f}, {:10.5f}, {:10.5f}]"
-                        .format(batch_idx, np.sqrt(ls), l15, l50, l85, d15, d50, d85))
-
 def main():
-    print('\n\033[1m\033[34m┌───┤Tensorflow version: {}├─┤compiler: {}├─┤git: {}├───┐\033[0m'.format(tf.__version__, tf.__compiler_version__, tf.__git_version__))
+    print('\033[1m\033[34mTensorflow version: {} compiler: {} git: {}\033[0m'.format(tf.__version__, tf.__compiler_version__, tf.__git_version__))
     parser = build_parser()
     options = parser.parse_args()
 

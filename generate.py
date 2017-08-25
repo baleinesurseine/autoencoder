@@ -86,6 +86,7 @@ def generate_im(re_files, shape):
     out = cv2.resize(out, (shape[1], shape[0]))
     #out += np.random.normal(scale=0.05, size=out.shape)
     out = np.clip(out, 0., 1.)
+
     return out
 
 def generate_ims(shape, bg_dir):
