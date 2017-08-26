@@ -34,12 +34,14 @@ def gray_heat(map):
     """
     Outputs a heat-map from a gray image
     """
+    map = (map - 0.5) * 5.0 + 0.5
     H = map.shape[0]
     W = map.shape[1]
     out = np.zeros((H,W,3))
     for h in range(0,H):
         for w in range(0,W):
-            out[h,w,:] = colorsys.hls_to_rgb((1.0-map[h,w])*0.94, 0.5, 1.0)
+            # (240, )
+            out[h,w,:] = colorsys.hls_to_rgb((1.0-map[h,w])*0.66667, 0.5, 1.0)
     return out
 
 # for command line interpreter
