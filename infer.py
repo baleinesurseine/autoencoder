@@ -23,11 +23,24 @@ from argparse import ArgumentParser
 import cv2
 import numpy as np
 import os
+import colorsys
 # remove informative logging from tensorflow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import tensorflow as tf
 import model
+
+def gray_heat(map):
+    """
+    Outputs a heat-map from a gray image
+    """
+    H = map.shape[0]
+    W = map.shape[1]
+    out = np.zeros((H,W,3))
+    for h in range(0,H):
+        for w in range(0,W):
+            out[h,w,:] = colorsys.hls_to_rgb((1.0-map[h,w])*0.94, 0.5, 1.0)
+    return out
 
 # for command line interpreter
 def build_parser():
@@ -68,11 +81,15 @@ def plotCode(code):
     return out
 
 def plotWeights(w):
+    """
+    Plots the weights of the first convolutional layer as a 16 tiles 3x3 images
+    """
     w = w[:,:,0,:]
     # rescale w to 0.0 - 1.0
     mincode = np.amin(w)
     maxcode = np.amax(w)
     w = (w - mincode) / (maxcode - mincode)
+
     out = np.zeros((15, 15))
     for x in range(0,4):
         for y in range(0,4):
@@ -96,12 +113,15 @@ def main():
     saver.restore(sess, tf.train.latest_checkpoint('./' + options.weights))
     print('Done.')
     graph = tf.get_default_graph()
+
     if options.filter:
+        # outputs only first convolutional layer weights
         Wc1 = graph.get_tensor_by_name('Wc1:0')
         w = sess.run(Wc1)
         out = plotWeights(w)
         cv2.imwrite(options.output, out * 255.)
         exit(0)
+
     x = graph.get_tensor_by_name('Input:0')
     y = graph.get_tensor_by_name('Code:0')
     x_ = graph.get_tensor_by_name('reconstruct:0')
@@ -129,7 +149,7 @@ def main():
     rec = rec[0,:,:,0]
     # clip to [0..1] (relu activation doesn't ensure output is <1)
     out = np.clip(rec, 0., 1.)
-    dif = ((out - im)+1.)/2.
+    dif = gray_heat(((out - im)+1.)/2.)
     mapcode = plotCode(code[0, :, :, :])
     # save images : reconstructed, error and code
     cv2.imwrite('rec-'+options.output,     out * 255.)

@@ -60,7 +60,7 @@ def mpgen(f):
 @mpgen
 def read_batches(shape, options, batch_size):
     """
-    return a generator of batches
+    Returns a generator of batches
     """
     # get an (infinite) image generator
     g = generate.generate_ims(shape, options.bg)
@@ -73,6 +73,9 @@ SAVE = 'my_model'
 # for command line interpreter
 def build_parser():
     parser = ArgumentParser()
+    parser.add_argument('--sparse', '-x', type=float,
+            dest='sparse', help="sparsity penalty (default '%(default)s')",
+            metavar='SPARSE', default=0.0)
     parser.add_argument('--weights', '-w',
             dest='weights', help="load pre-trained weights",
             metavar='WEIGHTS')
@@ -92,6 +95,10 @@ def build_parser():
     return parser
 
 def train(learn_rate, batch_size, shape, options):
+    """
+    Runs a training loop, minimizing L2 norm of the reconstruction error plus
+    a L1 penalty on coding layer for sparsity
+    """
     # set Session
     config = tf.ConfigProto()
     config.allow_soft_placement = True
@@ -106,7 +113,9 @@ def train(learn_rate, batch_size, shape, options):
         adam = tf.train.AdamOptimizer(learn_rate,name="adam")
         y_ = tf.placeholder(tf.float32, [None, None, None], name='y_')
         loss = tf.reduce_mean(tf.square(x_[:,:,:,0] - y_), name="loss")
-        train_step = adam.minimize(loss, name="train_step")
+        cst = tf.constant(options.sparse, name="sparsity")
+        spa = tf.reduce_mean(tf.abs(y), name = "sparse")
+        train_step = adam.minimize(loss + cst * spa, name="train_step")
         init = tf.global_variables_initializer()
         sess.run(init)
     else:
@@ -123,6 +132,7 @@ def train(learn_rate, batch_size, shape, options):
         x_ = graph.get_tensor_by_name('reconstruct:0')
         y_ = graph.get_tensor_by_name('y_:0')
         loss = graph.get_tensor_by_name('loss:0')
+        spa = graph.get_tensor_by_name('sparse:0')
         train_step = graph.get_operation_by_name('train_step')
 
     # save model before exit
@@ -130,15 +140,21 @@ def train(learn_rate, batch_size, shape, options):
 
     # iterate train steps on batches
     batch_iter = enumerate(read_batches(shape, options, batch_size))
+    print('┌────────┬─────────┬─────────┐')
+    print('│ #Batch │ Reconst.│ Sparsity│')
+    print('├────────┼─────────┼─────────┤')
     for batch_idx, batch_xs in batch_iter:
-        _, ls = sess.run([train_step, loss], feed_dict={x: batch_xs, y_: batch_xs})
-        print("{:8d}:{:10.5f}".format(batch_idx, np.sqrt(ls)))
+        _, ls, sp = sess.run([train_step, loss, spa], feed_dict={x: batch_xs, y_: batch_xs})
+        print("│{:8d}│{:9.5f}│{:9.5f}│".format(batch_idx, np.sqrt(ls), sp))
 
 def make_sigint_handler(sess,filename):
+    """
+    Handle CTRL-C from the user input, and saves the state of the network
+    """
     def signal_handler(sig, frame):
         print('\n\033[1m\033[34m===== train.py[pid:{}] interrupted =====\033[0m'.format(os.getpid()))
-        # create directory if doesn't exist
         try:
+            # create directory if doesn't exist
             os.makedirs(filename)
         except OSError as e:
             if e.errno != errno.EEXIST:

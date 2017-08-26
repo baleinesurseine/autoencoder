@@ -92,7 +92,7 @@ def generate_ims(shape, bg_dir):
     """
     in_files = os.path.join(bg_dir, '*.jpg')
     re_files = glob.glob(in_files)
-    print('Number of base files: ', len(re_files))
+    #print('Number of base files: ', len(re_files))
     while True:
         yield generate_im(re_files, shape)
 
